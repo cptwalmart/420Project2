@@ -1,0 +1,33 @@
+data structure(linked List)  //BST//Red Black Tree?//HashTable?//
+
+wordnode
+    word
+    wordnode* next
+
+papernode
+    paper_id
+    wordnode* head //head of a list of words
+    papernode* next
+
+Treenode
+    paper id
+    treenode* left, right
+    char** words //satellite data
+
+//does the tree insert
+bst_insert(TreeNode* root, char* word, char* paper_id);
+    //Treenode* cursor = root;
+    while()
+        if(strcmp(word, cursor.word)){
+            cursor = ->left;
+        }
+        else{
+            cursor = cursor->right
+        }
+
+bst_savetofile(treenode*...)
+    //Preorder search?
+
+
+//extract keywords/ids in parallel?
+//Don't worry about articles(a, the...)
