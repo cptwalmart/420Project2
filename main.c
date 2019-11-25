@@ -12,8 +12,10 @@
 
 struct Paper{
 	char *id;
-	char *words;
-	struct Paper *cites;
+	char *title;
+	char *authors;
+	char *abstract;
+	/* struct Paper *cites; */
 };
 
 int me;
@@ -21,6 +23,15 @@ int nprocs;
 
 char fullMetaFile[METAFILE_NUM_LINES];
 char fullCitationsFile[CITATIONFILE_NUM_LINES];
+
+/* struct Paper papers */
+
+void printPaper(struct Paper p){
+	printf("ID: %s\n", p.id);
+	printf("Title: %s\n", p.title);
+	printf("Authors: %s\n", p.authors);
+	printf("Abstract: %s\n", p.abstract);
+}
 
 void readInMetadata(){
 
@@ -44,40 +55,87 @@ void readInMetadata(){
 		my_end += leftover;
 	}
 
-	int line_num, onLineNum, paper_count;
+	struct Paper paper;
+	struct Paper myPapers[my_end - my_start];
+
+	char *id, *title, *authors, *abstract = malloc(sizeof(char*));
+
+	int line_num, onLineNum, paper_count, num_grabbed_papers;
 	onLineNum = 0;
+	num_grabbed_papers = 0;
 	paper_count = 0;
 	while ((read = getline(&line_text, &len, fp)) != -1) {
 		/* printf("Line: %s\n", line_text); */
 		if (line_text[0] == '+'){
 			onLineNum = 0;
 			paper_count++;
+			/* struct Paper tmp; */
+			/* paper = tmp; */
 		}
 		else if (paper_count >= my_start && paper_count <= my_end){ //Ignore if not in "my" section of file
 			/* printf("Node %d gets: \n", me); */
 			/* printf("ID: %s\n", line_text); */
 			if (onLineNum == 0){ //Get id
 				/* printf("node %d ID: %s\n", me, line_text); */
+				/* free(id); */
+				/* id = malloc(sizeof(line_text)); */
+				id = line_text;
+				/* printf("id: %s\n", id); */
+				/* paper.id = line_text; */
 				onLineNum++;
 			}
 			else if (onLineNum == 1){ //Get title
 				/* printf("Title: %s\n", line_text); */
+				/* free(title); */
+				/* title = malloc(sizeof(line_text)); */
+				title = line_text;
+				/* printf("title: %s\n", title); */
 				/* printf("node %d Title: %s\n", me, line_text); */
+				/* paper.title = line_text; */
 				onLineNum++;
 			}
 			else if (onLineNum == 2){ //Get authors
 				/* printf("Authors: %s\n", line_text); */
+				/* free(authors); */
+				/* authors = malloc(sizeof(line_text)); */
+				authors = line_text;
+				/* printf("authors: %s\n", authors); */
 				/* printf("node %d Author: %s\n", me, line_text); */
+				/* paper.authors = line_text; */
 				onLineNum++;
 			}
 			else if (onLineNum > 2){ //Get abstract
 				/* printf("Abstract: %s\n", line_text); */
+				/* free(abstract); */
+				/* abstract = malloc(sizeof(line_text)); */
+				abstract = line_text;
+				/* printf("abstract: %s\n", abstract); */
 				/* printf("node %d Ab: %s\n", me, line_text); */
+				/* paper.abstract = line_text; */
+				printf("id: %s\n", id);
+				printf("title: %s\n", title);
+				printf("authors: %s\n", authors);
+				printf("abstract: %s\n", abstract);
+				struct Paper p; //= {"test1", "test2", "test3", "test4"};
+				p.id = id;
+				p.title = title;
+				p.authors = authors;
+				p.abstract = abstract;
+				/* myPapers[num_grabbed_papers] = {id, title, authors, abstract}; */
+				myPapers[num_grabbed_papers] = p;
+				/* printPaper(myPapers[num_grabbed_papers]); */
 				onLineNum++;
+				num_grabbed_papers++;
 
 			}
 		}
 	}
+	/* if (me == 0){ */
+		int i;
+		for(i = 0; i < my_end - my_start; i++){
+			printPaper(myPapers[i]);
+		}
+	/* } */
 }
 
 void readInCitations(){
