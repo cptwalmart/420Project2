@@ -3,6 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include "hash.h"
+
 #define METAFILE_NUM_LINES 8073560
 #define CITATIONFILE_NUM_LINES 10913892
 #define NUM_PAPERS_IN_METADATA 1614712
@@ -25,6 +28,17 @@ int blocksize = 0;
 
 char fullMetaFile[METAFILE_NUM_LINES];
 char fullCitationsFile[CITATIONFILE_NUM_LINES];
+
+char *normalize(char *word) {
+  char *ret = calloc(strlen(word), sizeof(char));
+  int i, j = 0;
+  for(i = 0; i < strlen(word); i++) {
+    if(isalnum(word[i])) {
+      ret[j++] = tolower(word[i]);
+    }
+  }
+  return ret;
+}
 
 /* struct Paper papers */
 
@@ -61,7 +75,7 @@ struct Paper *readInMetadata(){
 
 	struct Paper *myPapers = malloc(sizeof(struct Paper) * blocksize);
 
-	int line_num, onLineNum, paper_count, num_grabbed_papers;
+	int onLineNum, paper_count, num_grabbed_papers;
 	onLineNum = 0;
 	num_grabbed_papers = 0;
 	paper_count = 0;
@@ -81,6 +95,7 @@ struct Paper *readInMetadata(){
 				/* strcpy(tmp_id, line_text); */
 				myPapers[num_grabbed_papers].id = malloc(sizeof(char*)*strlen(line_text));
 				strcpy(myPapers[num_grabbed_papers].id, line_text);
+				myPapers[num_grabbed_papers].id[strlen(line_text) - 1] = 0; /* strip newline */
 				onLineNum++;
 			}
 			else if (onLineNum == 1){ //Get title
@@ -183,7 +198,28 @@ void createFileLinesArray(){
 	/* fclose(fp1); */
 	/* fclose(fp2); */
 }
-			
+
+void hashtable_print_contents(struct hashtable *h) {
+  uint32_t bucket_idx;
+  fprintf(stderr, "Hashtable at %p:\n", h);
+  for(bucket_idx = 0; bucket_idx < HASH_BUCKETS; bucket_idx++) {
+    if(h->buckets[bucket_idx]) {
+      fprintf(stderr, "  Bucket %d:\n", bucket_idx);
+      struct hashbucket *p = h->buckets[bucket_idx];
+      while(p) {
+	fprintf(stderr, "    Key '%s':\n", p->key);
+	struct paper_list *l = p->value;
+	while(l) {
+	  fprintf(stderr, "      Paper '%s'\n", l->id);
+	  l = l->next;
+	}
+	p = p->next;
+      }
+    }
+  }
+}
+
+
 int main(){
 	MPI_Init(NULL, NULL);
 	MPI_Comm world = MPI_COMM_WORLD;
@@ -192,12 +228,34 @@ int main(){
 
 	/* createFileLinesArray(); */
 
+	fprintf(stderr, "Reading papers...\n");
 	struct Paper *papers;
 	papers = readInMetadata();
+	fprintf(stderr, "Hashing papers...\n");
+	struct hashtable h;
+	hashtable_init(&h);
+	
 	int i;
-	/* for(i = 0; i < blocksize; i++){ */
-	/* 	printPaper(papers[i]); */
-	/* } */
+	for(i = 0; i < blocksize; i++) {
+	  char *wptr = strdup(papers[i].abstract), *sep;
+	  char *orig_wptr = wptr;
+	  while((sep = strchr(wptr, ' '))) {
+	    *sep = '\0';
+	    char *normalized = normalize(wptr);
+	    if(strlen(normalized) > 3) {
+	      hashtable_append(&h, normalized, papers[i].id);
+	    } else {
+	      free(normalized);
+	    }
+	    wptr = sep + 1;
+	  }
+	  free(orig_wptr);
+	  if(i % 1000 == 999) {
+	    fprintf(stderr, " %d / %d\r", i, blocksize);
+	    fflush(stderr);
+	  }
+	}
+	fprintf(stderr, "\n");
 	/* readInCitations(); */
 
 	MPI_Finalize();
