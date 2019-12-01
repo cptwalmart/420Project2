@@ -2,3 +2,4 @@ arxiv-citations.txt
 arxiv-metadata.txt
 *.o
 output
+*~
