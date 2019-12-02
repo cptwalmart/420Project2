@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "hash.h"
+#include "matops.h"
 
 #define METAFILE_NUM_LINES 8073560
 #define CITATIONFILE_NUM_LINES 10913892
@@ -18,7 +19,6 @@ struct Paper{
 	char *title;
 	char *authors;
 	char *abstract;
-	/* struct Paper *cites; */
 };
 
 int me;
@@ -48,7 +48,50 @@ void printPaper(struct Paper p){
 	printf("Authors: %s\n", p.authors);
 	printf("Abstract: %s\n", p.abstract);
 }
+int getIndexFromId(char *id){
+	FILE * fp;
+	char * line_text = NULL;
+	size_t len = 0;
+	ssize_t read;
 
+	fp = fopen("id_map.txt", "r");
+	if (fp == NULL){
+		printf("ERROR: Could not find file: id_map.txt");
+		return -1;
+	}
+
+	while ((read = getline(&line_text, &len, fp)) != -1) {
+		if (line_text[0] == id[0]){
+			int i, match;
+			i = 0;
+			match = 1;
+			while (line_text[i] != ':'){
+				if (line_text[i] != id[i]){
+					match = 0;
+					break;
+				}
+				i++;
+			}
+			if (match == 1){
+				char num_str[15];
+				i++;
+				int j;
+				j = 0;
+				while (line_text[i] != '\0'){
+					num_str[j] = line_text[i];		
+					j++;
+					i++;
+				}
+				int num = atoi(num_str);
+				/* printf("Found ID: %d\n", num); */
+				fclose(fp);
+				return num;
+			}
+		}
+	}
+	fclose(fp);
+	return -1;
+}
 struct Paper *readInMetadata(){
 
 	FILE * fp;
@@ -58,7 +101,7 @@ struct Paper *readInMetadata(){
 
 	fp = fopen("arxiv-metadata.txt", "r");
 	if (fp == NULL){
-		printf("ERROR: Could not find file");
+		printf("ERROR: Could not find file: arxiv-metadata.txt");
 		return 0;
 	}
 
@@ -79,6 +122,11 @@ struct Paper *readInMetadata(){
 	onLineNum = 0;
 	num_grabbed_papers = 0;
 	paper_count = 0;
+	/* FILE *f = fopen("id_map.txt", "w"); */
+	/* if (f == NULL) */
+	/* { printf("Error opening file!\n"); */
+	/* 	exit(1); */
+	/* } */
 	while ((read = getline(&line_text, &len, fp)) != -1) {
 		/* printf("Line: %s\n", line_text); */
 		if (line_text[0] == '+'){
@@ -97,6 +145,20 @@ struct Paper *readInMetadata(){
 				strcpy(myPapers[num_grabbed_papers].id, line_text);
 				myPapers[num_grabbed_papers].id[strlen(line_text) - 1] = 0; /* strip newline */
 				onLineNum++;
+
+				//Create id->row index map. 
+				/* char *line = malloc(100); */
+				/* strcat(line, line_text); */
+				/* strtok(line, "\n"); */
+				/* strcat(line, ":"); */
+				/* char tmp[15]; */
+				/* sprintf(tmp, "%d", paper_count); */
+				/* strcat(line, tmp); */
+
+				/* /1* const char *text = "Write this to the file"; *1/ */
+				/* fprintf(f, "%s\n", line); */
+				/* free(line); */
+
 			}
 			else if (onLineNum == 1){ //Get title
 				/* char tmp_title[strlen(line_text)]; */
@@ -118,10 +180,12 @@ struct Paper *readInMetadata(){
 			}
 		}
 	}
+	/* fclose(f); */
 	return myPapers;
 }
 
 void readInCitations(){
+	printf("JERE");
 
 	FILE * fp;
 	char * line_text = NULL;
@@ -130,12 +194,13 @@ void readInCitations(){
 
 	fp = fopen("arxiv-citations.txt", "r");
 	if (fp == NULL){
-		printf("ERROR: Could not find file");
+		printf("ERROR: Could not find file: arxiv-citations.txt");
 		return;
 	}
 
 	int my_start, my_end, raw_block_size, leftover;
-	raw_block_size = NUM_PAPERS_IN_CITATIONS / nprocs;
+	/* raw_block_size = NUM_PAPERS_IN_CITATIONS / nprocs; */
+	raw_block_size = NUM_PAPERS_IN_CITATIONS / nprocs; //Changed since this doesnt need to be in parallel anymore
 	leftover = NUM_PAPERS_IN_CITATIONS % nprocs;
 	my_start = raw_block_size * me;
 	my_end = (my_start + raw_block_size) - 1;
@@ -143,9 +208,17 @@ void readInCitations(){
 		my_end += leftover;
 	}
 
-	int paper_count, readingCitationsId;
+	int paper_count, readingCitationsId, citation_count;
 	paper_count = 0;
+	citation_count = 0;
 	readingCitationsId = 0;
+
+	int myIndex;
+	struct SparseMatrix adj_mat;
+	adj_mat = initSparseMatrix();
+	
+
+
 	while ((read = getline(&line_text, &len, fp)) != -1) {
 		/* printf("Line: %s\n", line_text); */
 		/* printf("On word: %d\n", paper_count); */
@@ -162,41 +235,21 @@ void readInCitations(){
 			}
 			else if (readingCitationsId){ //Read citation IDs
 				/* printf("node %d reading citations:  %s\n", me, line_text); */
+				int myCitationIndex;
+				myCitationIndex = getIndexFromId(line_text);
+				addSparseValue(adj_mat, 1, myIndex, myCitationIndex);
+				if (citation_count % 10 == 0){
+					printf("Number of citations added to adj matrix: %d\n", citation_count);
+				}
+				citation_count++;
 				
 			}
 			else { //Read my ID
 				/* printf("node %d reading my id: %s\n", me, line_text); */
-
+				myIndex = getIndexFromId(line_text);
 			}
 		}
 	}
-}
-
-//Not used
-void createFileLinesArray(){
-	MPI_File fh1;
-	MPI_File_open(MPI_COMM_WORLD, "arxiv-metadata.txt", MPI_MODE_RDWR, MPI_INFO_NULL, &fh1 );
-	if (me == 0){ //Node 0 puts all words into char array
-		MPI_File_read_shared(fh1, fullMetaFile, METAFILE_NUM_LINES, MPI_CHAR, NULL);
-	}
-	MPI_File fh2;
-	MPI_File_open(MPI_COMM_WORLD, "arxiv-citations.txt", MPI_MODE_RDWR, MPI_INFO_NULL, &fh2 );
-	if (me == 0){ //Node 0 puts all words into char array
-		MPI_File_read_shared(fh2, fullCitationsFile, CITATIONFILE_NUM_LINES, MPI_CHAR, NULL);
-	}
-
-
-	int i;
-	for(i = 0; i < 10; i++){
-		printf("TEXT META: %c\n", fullMetaFile[i]);
-
-	}
-	for(i = 0; i < 10; i++){
-		printf("TEXT CIT: %c\n", fullCitationsFile[i]);
-
-	}
-	/* fclose(fp1); */
-	/* fclose(fp2); */
 }
 
 void hashtable_print_contents(struct hashtable *h) {
@@ -226,7 +279,6 @@ int main(){
 	MPI_Comm_size(world,  &nprocs);
 	MPI_Comm_rank(world, &me);
 
-	/* createFileLinesArray(); */
 
 	fprintf(stderr, "%d Reading papers...\n", me);
 	struct Paper *papers;
@@ -284,7 +336,10 @@ int main(){
 	} else {
 	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
 	}
-	/* readInCitations(); */
+
+	if (me == 0){
+		readInCitations();
+	}
 	
 	MPI_Finalize();
 	return 0;
