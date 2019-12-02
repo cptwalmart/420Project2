@@ -90,6 +90,7 @@ int getIndexFromId(char *id){
 		}
 	}
 	fclose(fp);
+	printf("Failed to find index for ID: %s\n", id);
 	return -1;
 }
 struct Paper *readInMetadata(){
@@ -217,9 +218,14 @@ void readInCitations(){
 	struct SparseMatrix adj_mat;
 	adj_mat = initSparseMatrix();
 	
+	FILE *f = fopen("sparse_mat.txt", "w");
+	if (f == NULL){
+		printf("Error opening file!\n");
+		exit(1);
+	}
 
 
-	while ((read = getline(&line_text, &len, fp)) != -1) {
+	while ((read = getline(&line_text, &len, fp)) != -1 && paper_count < 1000) {
 		/* printf("Line: %s\n", line_text); */
 		/* printf("On word: %d\n", paper_count); */
 		if (line_text[0] == '+'){ //Trigger for reading next paper
@@ -237,11 +243,18 @@ void readInCitations(){
 				/* printf("node %d reading citations:  %s\n", me, line_text); */
 				int myCitationIndex;
 				myCitationIndex = getIndexFromId(line_text);
-				addSparseValue(adj_mat, 1, myIndex, myCitationIndex);
-				if (citation_count % 10 == 0){
-					printf("Number of citations added to adj matrix: %d\n", citation_count);
+				/* addSparseValue(adj_mat, 1, myIndex, myCitationIndex); */
+				if (citation_count % 50 == 0){
+					printf("On paper %d with number of citations added to adj matrix: %d\n", paper_count, citation_count);
 				}
 				citation_count++;
+				if (myIndex == -1 || myCitationIndex == -1){
+					continue;
+				}
+
+				fprintf(f, "%d", myIndex);
+				fprintf(f, "%s", ",");
+				fprintf(f, "%d\n", myCitationIndex);
 				
 			}
 			else { //Read my ID
@@ -250,6 +263,7 @@ void readInCitations(){
 			}
 		}
 	}
+	fclose(f);
 }
 
 void hashtable_print_contents(struct hashtable *h) {
@@ -280,62 +294,62 @@ int main(){
 	MPI_Comm_rank(world, &me);
 
 
-	fprintf(stderr, "%d Reading papers...\n", me);
-	struct Paper *papers;
-	papers = readInMetadata();
-	fprintf(stderr, "%d Hashing papers...\n", me);
-	struct hashtable h;
-	hashtable_init(&h);
+/* 	fprintf(stderr, "%d Reading papers...\n", me); */
+/* 	struct Paper *papers; */
+/* 	papers = readInMetadata(); */
+/* 	fprintf(stderr, "%d Hashing papers...\n", me); */
+/* 	struct hashtable h; */
+/* 	hashtable_init(&h); */
 	
-	int i;
-	for(i = 0; i < blocksize; i++) {
-	  char *wptr = strdup(papers[i].abstract), *sep;
-	  char *orig_wptr = wptr;
-	  while((sep = strchr(wptr, ' '))) {
-	    *sep = '\0';
-	    char *normalized = normalize(wptr);
-	    if(strlen(normalized) > 3) {
-	      hashtable_append(&h, normalized, papers[i].id);
-	    } else {
-	      free(normalized);
-	    }
-	    wptr = sep + 1;
-	  }
-	  free(orig_wptr);
-	}
-	fprintf(stderr, "%d Serializing hash...\n", me);
-	int length = hashtable_serialized_length(&h);
-	fprintf(stderr, "%d Hashtable size: %d\n", me, length);
-	char *serialized = malloc(length);
-	serialize_hashtable(&h, serialized);
+/* 	int i; */
+/* 	for(i = 0; i < blocksize; i++) { */
+/* 	  char *wptr = strdup(papers[i].abstract), *sep; */
+/* 	  char *orig_wptr = wptr; */
+/* 	  while((sep = strchr(wptr, ' '))) { */
+/* 	    *sep = '\0'; */
+/* 	    char *normalized = normalize(wptr); */
+/* 	    if(strlen(normalized) > 3) { */
+/* 	      hashtable_append(&h, normalized, papers[i].id); */
+/* 	    } else { */
+/* 	      free(normalized); */
+/* 	    } */
+/* 	    wptr = sep + 1; */
+/* 	  } */
+/* 	  free(orig_wptr); */
+/* 	} */
+/* 	fprintf(stderr, "%d Serializing hash...\n", me); */
+/* 	int length = hashtable_serialized_length(&h); */
+/* 	fprintf(stderr, "%d Hashtable size: %d\n", me, length); */
+/* 	char *serialized = malloc(length); */
+/* 	serialize_hashtable(&h, serialized); */
 
-	fprintf(stderr, "%d Serialization complete.\n", me);
+/* 	fprintf(stderr, "%d Serialization complete.\n", me); */
 
-	int *serialized_sizes;
-	if(me == 0) {
-	  serialized_sizes = calloc(nprocs, sizeof(int));
-	}
-	MPI_Gather(&length, 1, MPI_INT, serialized_sizes, 1, MPI_INT, 0, world);
-	if(me == 0) {
-	  int i;
-	  for(i = 0; i < nprocs; i++) {
-	    fprintf(stderr, "Size of %d's table: %d\n", i, serialized_sizes[i]);
-	  }
-	}
+/* 	int *serialized_sizes; */
+/* 	if(me == 0) { */
+/* 	  serialized_sizes = calloc(nprocs, sizeof(int)); */
+/* 	} */
+/* 	MPI_Gather(&length, 1, MPI_INT, serialized_sizes, 1, MPI_INT, 0, world); */
+/* 	if(me == 0) { */
+/* 	  int i; */
+/* 	  for(i = 0; i < nprocs; i++) { */
+/* 	    fprintf(stderr, "Size of %d's table: %d\n", i, serialized_sizes[i]); */
+/* 	  } */
+/* 	} */
 
-	if(me == 0) {
-	  int i;
-	  for(i = 1; i < nprocs; i++) {
-	    fprintf(stderr, "Receiving from %d\n", i);
-	    char *recv_serial = calloc(serialized_sizes[i], 1);
-	    MPI_Recv(recv_serial, serialized_sizes[i], MPI_BYTE, i, 0, world, MPI_STATUS_IGNORE);
-	    fprintf(stderr, "Merging from %d\n", i);
-	    deserialize_hashtable(recv_serial, &h);
-	    free(recv_serial);
-	  }
-	} else {
-	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
-	}
+/* 	if(me == 0) { */
+/* 	  int i; */
+/* 	  for(i = 1; i < nprocs; i++) { */
+/* 	    fprintf(stderr, "Receiving from %d\n", i); */
+/* 	    char *recv_serial = calloc(serialized_sizes[i], 1); */
+/* 	    MPI_Recv(recv_serial, serialized_sizes[i], MPI_BYTE, i, 0, world, MPI_STATUS_IGNORE); */
+/* 	    fprintf(stderr, "Merging from %d\n", i); */
+/* 	    deserialize_hashtable(recv_serial, &h); */
+/* 	    free(recv_serial); */
+/* 	  } */
+/* 	} else { */
+/* 	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world); */
+/* 	} */
 
 	if (me == 0){
 		readInCitations();
