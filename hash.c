@@ -84,3 +84,123 @@ void hashtable_free(struct hashtable *h) {
   }
   free(h->buckets);
 }
+
+uint32_t _read_int(const char *s) {
+  uint32_t i = 0;
+  i |= (*s++) << 0;
+  i |= (*s++) << 8;
+  i |= (*s++) << 16;
+  i |= (*s++) << 24;
+  return i;
+}
+
+void _write_int(char *s, uint32_t i) {
+  *s++ = i & 0xFF; i >>= 8;
+  *s++ = i & 0xFF; i >>= 8;
+  *s++ = i & 0xFF; i >>= 8;
+  *s++ = i & 0xFF;
+}
+
+uint32_t string_serialized_length(const char *s) {
+  return strlen(s) + 4;
+}
+
+void serialize_string(const char *s, char *out) {
+  uint32_t string_length = strlen(s);
+  _write_int(out, string_length);
+  strcpy(out + 4, s);
+}
+
+uint32_t paper_list_serialized_length(struct paper_list *l) {
+  uint32_t overall_length = 4;
+  while(l) {
+    overall_length += string_serialized_length(l->id);
+    l = l->next;
+  }
+  return overall_length;
+}
+
+void serialize_paper_list(struct paper_list *l, char *out) {
+  uint32_t items = 0;
+  char *bufp = out + 4;
+  while(l) {
+    serialize_string(l->id, bufp);    
+    bufp += string_serialized_length(l->id);
+    items++;
+    l = l->next;
+  }
+  _write_int(out, items);
+}
+
+uint32_t bucket_serialized_length(struct hashbucket *b) {
+  uint32_t overall_length = 4;
+  while(b) {
+    overall_length += string_serialized_length(b->key);
+    overall_length += paper_list_serialized_length(b->value);
+    b = b->next;
+  }
+  return overall_length;
+}
+
+void serialize_bucket(struct hashbucket *b, char *out) {
+  uint32_t items = 0;
+  char *bufp = out + 4;
+  while(b) {
+    serialize_string(b->key, bufp);
+    bufp += string_serialized_length(b->key);
+    serialize_paper_list(b->value, bufp);
+    bufp += paper_list_serialized_length(b->value);
+    items++;
+    b = b->next;
+  }
+  _write_int(out, items);
+}
+
+uint32_t hashtable_serialized_length(struct hashtable *h) {
+  int i;
+  uint32_t overall_length = 0;
+  for(i = 0; i < HASH_BUCKETS; i++) {
+    overall_length += bucket_serialized_length(h->buckets[i]);
+  }
+  return overall_length;
+}
+
+void serialize_hashtable(struct hashtable *h, char *out) {
+  int i;
+  char *bufp = out;
+  for(i = 0; i < HASH_BUCKETS; i++) {
+    serialize_bucket(h->buckets[i], bufp);
+    bufp += bucket_serialized_length(h->buckets[i]);
+  }
+}
+
+uint32_t deserialize_string(const char *serial, char **out) {
+  uint32_t string_length = _read_int(serial);
+  *out = calloc(string_length, 1);
+  strncpy(*out, serial + 4, string_length);
+  return string_length + 4;
+}
+
+void deserialize_hashtable(const char *serial, struct hashtable *target) {
+  int i;
+  for(i = 0; i < HASH_BUCKETS; i++) {
+    int items = _read_int(serial);
+    serial += 4;
+    int j;
+    for(j = 0; j < items; j++) {
+      char *key;
+      serial += deserialize_string(serial, &key);
+      int items_2 = _read_int(serial);
+      serial += 4;
+      int k;
+      for(k = 0; k < items_2; k++) {
+	char *id;
+	serial += deserialize_string(serial, &id);
+	hashtable_append(target, key, id);
+	free(id);
+      }
+      free(key);
+    }
+  }
+}
+

@@ -250,12 +250,10 @@ int main(){
 	    wptr = sep + 1;
 	  }
 	  free(orig_wptr);
-	  if(i % 1000 == 999) {
-	    fprintf(stderr, " %d / %d\r", i, blocksize);
-	    fflush(stderr);
-	  }
 	}
-	fprintf(stderr, "\n");
+	fprintf(stderr, "Serializing hash...\n");
+	char *serialized = malloc(hashtable_serialized_length(&h));
+	serialize_hashtable(&h, serialized);
 	/* readInCitations(); */
 
 	MPI_Finalize();

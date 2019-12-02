@@ -1,5 +1,6 @@
 #include "hash.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void hashtable_print_contents(struct hashtable *h) {
   uint32_t bucket_idx;
@@ -39,4 +40,16 @@ int main(void) {
   }
   hashtable_append(&h, candidate, "Paper 4");
   hashtable_print_contents(&h);
+
+  uint32_t length = hashtable_serialized_length(&h);
+  char *serialized = calloc(length, 1);
+  serialize_hashtable(&h, serialized);
+  FILE *f = fopen("/tmp/serial", "w");
+  fwrite(serialized, length, 1, f);
+  fclose(f);
+
+  struct hashtable h2;
+  hashtable_init(&h2);
+  deserialize_hashtable(serialized, &h2);
+  hashtable_print_contents(&h2);
 }
