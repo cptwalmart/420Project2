@@ -228,10 +228,10 @@ int main(){
 
 	/* createFileLinesArray(); */
 
-	fprintf(stderr, "Reading papers...\n");
+	fprintf(stderr, "%d Reading papers...\n", me);
 	struct Paper *papers;
 	papers = readInMetadata();
-	fprintf(stderr, "Hashing papers...\n");
+	fprintf(stderr, "%d Hashing papers...\n", me);
 	struct hashtable h;
 	hashtable_init(&h);
 	
@@ -251,11 +251,41 @@ int main(){
 	  }
 	  free(orig_wptr);
 	}
-	fprintf(stderr, "Serializing hash...\n");
-	char *serialized = malloc(hashtable_serialized_length(&h));
+	fprintf(stderr, "%d Serializing hash...\n", me);
+	int length = hashtable_serialized_length(&h);
+	fprintf(stderr, "%d Hashtable size: %d\n", me, length);
+	char *serialized = malloc(length);
 	serialize_hashtable(&h, serialized);
-	/* readInCitations(); */
 
+	fprintf(stderr, "%d Serialization complete.\n", me);
+
+	int *serialized_sizes;
+	if(me == 0) {
+	  serialized_sizes = calloc(nprocs, sizeof(int));
+	}
+	MPI_Gather(&length, 1, MPI_INT, serialized_sizes, 1, MPI_INT, 0, world);
+	if(me == 0) {
+	  int i;
+	  for(i = 0; i < nprocs; i++) {
+	    fprintf(stderr, "Size of %d's table: %d\n", i, serialized_sizes[i]);
+	  }
+	}
+
+	if(me == 0) {
+	  int i;
+	  for(i = 1; i < nprocs; i++) {
+	    fprintf(stderr, "Receiving from %d\n", i);
+	    char *recv_serial = calloc(serialized_sizes[i], 1);
+	    MPI_Recv(recv_serial, serialized_sizes[i], MPI_BYTE, i, 0, world, MPI_STATUS_IGNORE);
+	    fprintf(stderr, "Merging from %d\n", i);
+	    deserialize_hashtable(recv_serial, &h);
+	    free(recv_serial);
+	  }
+	} else {
+	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
+	}
+	/* readInCitations(); */
+	
 	MPI_Finalize();
 	return 0;
 }

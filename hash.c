@@ -1,6 +1,7 @@
 // hash.c
 
 #include "hash.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -87,10 +88,10 @@ void hashtable_free(struct hashtable *h) {
 
 uint32_t _read_int(const char *s) {
   uint32_t i = 0;
-  i |= (*s++) << 0;
-  i |= (*s++) << 8;
-  i |= (*s++) << 16;
-  i |= (*s++) << 24;
+  i |= ((uint8_t) *s++) << 0;
+  i |= ((uint8_t) *s++) << 8;
+  i |= ((uint8_t) *s++) << 16;
+  i |= ((uint8_t) *s++) << 24;
   return i;
 }
 
@@ -190,7 +191,7 @@ void deserialize_hashtable(const char *serial, struct hashtable *target) {
     for(j = 0; j < items; j++) {
       char *key;
       serial += deserialize_string(serial, &key);
-      int items_2 = _read_int(serial);
+      uint32_t items_2 = _read_int(serial);
       serial += 4;
       int k;
       for(k = 0; k < items_2; k++) {
