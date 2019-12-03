@@ -184,9 +184,9 @@ struct matrix matrix_copy(matrix *orig){
 
 struct SparseMatrix initSparseMatrix(){
 	struct SparseMatrix mat;
-	mat.vals = malloc(10000);
-	mat.row_index = malloc(10000);
-	mat.col_index = malloc(10000);
+	mat.vals = malloc(100000);
+	mat.row_index = malloc(100000);
+	mat.col_index = malloc(100000);
 	mat.size = 0;
 	return mat;
 }

@@ -66,7 +66,12 @@ struct paper_list *hashtable_get(struct hashtable *h, const char *key) {
       }
     }
   }
+  /* printf("Unable to find bucket\n"); */
+  /* struct hashbucket *bucket; */
+  /* bucket->value = -1; */
+  /* return */ 
   return (void *) 0;
+
 }
 
 void hashtable_free(struct hashtable *h) {
