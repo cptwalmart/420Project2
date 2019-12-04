@@ -221,6 +221,7 @@ void createAdjMatrix(){
 
 	struct hashtable h; //Store id -> index map
 	hashtable_init(&h);
+	citation_count = 0;
 
 	while ((read = getline(&line_text, &len, fp)) != -1){
 		/* printf("Line: %s\n", line_text); */
@@ -253,6 +254,7 @@ void createAdjMatrix(){
 			}
 		}
 	}
+	printf("Num citations: %d\n", citation_count);
 	fclose(fp);
 	
 	FILE * fp2;
@@ -291,7 +293,9 @@ void createAdjMatrix(){
 					continue;
 				}
 				myCitationsIndex = atoi(l->id);
-				addSparseValue(adj_mat, 1, myIndex, myCitationsIndex);
+				addSparseValue(&adj_mat, myIndex, myCitationsIndex);
+
+				citation_count++;
 				/* printf("my index: %d my citation index: %d\n", myIndex, myCitationsIndex); */
 			}
 			else { //Read my ID
@@ -304,6 +308,7 @@ void createAdjMatrix(){
 	}
 	struct paper_list *l = hashtable_get(&h, "plasm-ph/9607002");
 	printf("Value: %s\n", l->id);
+	printf("size: %d\n", adj_mat.size);
 	/* hashtable_print_contents(&h); */
 	fclose(f);
 }
@@ -334,7 +339,6 @@ int main(){
 	MPI_Comm world = MPI_COMM_WORLD;
 	MPI_Comm_size(world,  &nprocs);
 	MPI_Comm_rank(world, &me);
-
 
 	fprintf(stderr, "%d Reading papers...\n", me);
 	struct Paper *papers;

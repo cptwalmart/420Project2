@@ -4,7 +4,6 @@ typedef struct matrix{
 } matrix;
 
 struct SparseMatrix{
-	int *vals; 
 	int *row_index;
 	int *col_index;
 	int size;
@@ -27,4 +26,4 @@ void printMatrix(matrix* A);
 
 //Sparse matrix stuff
 struct SparseMatrix initSparseMatrix();
-void addSparseValue(struct SparseMatrix mat, int value, int row, int col);
+void addSparseValue(struct SparseMatrix *mat, int row, int col);

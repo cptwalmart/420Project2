@@ -184,16 +184,17 @@ struct matrix matrix_copy(matrix *orig){
 
 struct SparseMatrix initSparseMatrix(){
 	struct SparseMatrix mat;
-	mat.vals = malloc(100000);
-	mat.row_index = malloc(100000);
-	mat.col_index = malloc(100000);
+	mat.row_index = malloc(7000000 * sizeof(int));
+	mat.col_index = malloc(7000000 * sizeof(int));
 	mat.size = 0;
 	return mat;
 }
 
-void addSparseValue(struct SparseMatrix mat, int value, int row, int col){
-	mat.size++;
-	mat.vals[mat.size] = value;
-	mat.row_index[mat.size] = row;
-	mat.col_index[mat.size] = col;
+void addSparseValue(struct SparseMatrix *mat, int row, int col){
+	mat->size++;
+	/* if (mat->size % 1000 == 0){ */
+		printf("Size: %d\n", mat->size);
+	/* } */
+	mat->row_index[mat->size] = row;
+	mat->col_index[mat->size] = col;
 }
