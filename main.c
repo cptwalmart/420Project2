@@ -353,9 +353,7 @@ void createAdjMatrix(){
 			}
 		}
 	}
-	struct paper_list *l = hashtable_get(&h, "alg-geom/9412017");
 	printf("size: %d\n", adj_mat.size);
-	printf("Value: %s\n", l->id);
 	//hashtable_print_contents(&h);
 	printSparseValue(adj_mat, 38);
 	printSparseValue(adj_mat, 39);
@@ -366,10 +364,75 @@ void createAdjMatrix(){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Insert PageRank Iteration Loop here.
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// int i;
-	// for(i = 0; i < 1354753; i++){
+	int i;
+	int bINDEXb = 0;
+	int SearchIndex;
+	double tmpPR = 0;
+	int k;
+	//printf("Citation #%d HubScore: %.0f, AuthorityScore: %.0f, PageRank: %f\n", 38, hitsPr_mat.hub_score[38], hitsPr_mat.auth_score[38], hitsPr_mat.newpage_rank[38]);
+	for(k = 0; k < 10; k++){
+		if(k % 2 == 0){
+			for(i = 0; i < 1305086; i++){
+				int j;
+				// if(i > 1300000){
+				// 	printf("%d %d %d\n",k, i, bINDEXb);
+				// }
+				if((hitsPr_mat.auth_score[i] > 0) && (hitsPr_mat.hub_score[i] > 0)){
+					for(j = 0; j < hitsPr_mat.auth_score[i]; j++){
+						SearchIndex = adj_mat.col_index[bINDEXb];
+						if(hitsPr_mat.hub_score[SearchIndex] > 0){
+							tmpPR = tmpPR + (hitsPr_mat.oldpage_rank[SearchIndex] / hitsPr_mat.hub_score[SearchIndex]);
+						}
+						bINDEXb++;
+					}
+					hitsPr_mat.newpage_rank[i] = tmpPR;
+				}
+				bINDEXb++;
+			}
+		}
 
-	// }
+		else{
+			for(i = 0; i < 1305086; i++){
+				int j;
+				// if(i % 100000 == 0){
+				// 	printf("%d %d\n",k, i);
+				// }
+				if((hitsPr_mat.auth_score[i] > 0) && (hitsPr_mat.hub_score[i] > 0)){
+					for(j = 0; j < hitsPr_mat.auth_score[i]; j++){
+						SearchIndex = adj_mat.col_index[bINDEXb];
+						if(hitsPr_mat.hub_score[SearchIndex] > 0){
+							tmpPR = tmpPR + (hitsPr_mat.newpage_rank[SearchIndex] / hitsPr_mat.hub_score[SearchIndex]);
+						}
+						bINDEXb++;
+					}
+					hitsPr_mat.oldpage_rank[i] = tmpPR;
+				}
+				bINDEXb++;
+			}
+		}
+		bINDEXb = 0;
+		tmpPR = 0;
+	}
+
+	// struct paper_list *l = hashtable_get(&h, "alg-geom/9412017");
+	
+	// printf("Value: %s\n", l->id);
+	//hashtable_print_contents(&h);
+	//struct SparseMatrix *ptr = &adj_mat;
+	//ptr = ptr + atoi(l->id);
+
+	int aINDEXa;
+	for(aINDEXa = 0; aINDEXa < 40; aINDEXa++){
+		printf("Citation #%d HubScore: %.0f, AuthorityScore: %.0f, PageRank: %E\n", aINDEXa, hitsPr_mat.hub_score[aINDEXa], hitsPr_mat.auth_score[aINDEXa], hitsPr_mat.newpage_rank[aINDEXa]);
+	}
+	// printSparseValue(adj_mat, aINDEXa);
+	// aINDEXa++;
+	// printSparseValue(adj_mat, aINDEXa);
+	// aINDEXa++;
+	// printSparseValue(adj_mat, aINDEXa);
+	// printf("HubScore: %f\n", hitsPr_mat.hub_score[38]);
+	// printf("AuthorityScore: %f\n", hitsPr_mat.auth_score[38]);
+
 	fclose(f);
 }
 

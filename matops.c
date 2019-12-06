@@ -210,11 +210,13 @@ struct HitsPrMatrix initHITSPRMatrix(){
 	mat.oldpage_rank = malloc(1400000 * sizeof(double));
 	mat.newpage_rank = malloc(1400000 * sizeof(double));
 	int i;
+	double a = 1;
+	double b = 1354753;
 	for(i = 0; i < 1400000; i++){
 		mat.hub_score[i] = 0;
 		mat.auth_score[i] = 0;
-		mat.oldpage_rank[i] = 1/1354753;
-		mat.newpage_rank[i] = 1/1354753;
+		mat.oldpage_rank[i] = a/b;
+		mat.newpage_rank[i] = a/b;
 	}
 	return mat;
 }
