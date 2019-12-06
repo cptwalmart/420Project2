@@ -9,6 +9,13 @@ struct SparseMatrix{
 	int size;
 };
 
+struct HitsPrMatrix{
+	double* hub_score;
+	double* auth_score;
+	double* oldpage_rank;
+	double* newpage_rank;
+};
+
 float*  matrix_add(float* A, float* B, int blockSize);
 float*  matrix_sub(float* A, float* B, int blockSize);
 float  vector_mult(float* A, float* B, int blockSize);
@@ -27,3 +34,5 @@ void printMatrix(matrix* A);
 //Sparse matrix stuff
 struct SparseMatrix initSparseMatrix();
 void addSparseValue(struct SparseMatrix *mat, int row, int col);
+void printSparseValue(struct SparseMatrix mat, int index);
+struct HitsPrMatrix initHITSPRMatrix();

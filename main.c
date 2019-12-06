@@ -185,6 +185,48 @@ struct Paper *readInMetadata(){
 	return myPapers;
 }
 
+// ORIGINAL
+// void hashtable_print_contents(struct hashtable *h) {
+//   uint32_t bucket_idx;
+//   fprintf(stderr, "Hashtable at %p:\n", h);
+//   for(bucket_idx = 0; bucket_idx < HASH_BUCKETS; bucket_idx++) {
+//     if(h->buckets[bucket_idx]) {
+//       fprintf(stderr, "  Bucket %d:\n", bucket_idx);
+//       struct hashbucket *p = h->buckets[bucket_idx];
+//       while(p) {
+// 	fprintf(stderr, "    Key '%s':\n", p->key);
+// 	struct paper_list *l = p->value;
+// 	while(l) {
+// 	  fprintf(stderr, "      Paper '%s'\n", l->id);
+// 	  l = l->next;
+// 	}
+// 	p = p->next;
+//       }
+//     }
+//   }
+// }
+
+// TEST
+void hashtable_print_contents(struct hashtable *h) {
+  uint32_t bucket_idx = 38;
+  fprintf(stderr, "Hashtable at %p:\n", h);
+  //for(bucket_idx = 0; bucket_idx < HASH_BUCKETS; bucket_idx++) {
+   // if(h->buckets[bucket_idx]) {
+      fprintf(stderr, "  Bucket %d:\n", bucket_idx);
+      struct hashbucket *p = h->buckets[bucket_idx];
+      while(p) {
+	fprintf(stderr, "    Key '%s':\n", p->key);
+	struct paper_list *l = p->value;
+	while(l) {
+	  fprintf(stderr, "      Paper '%s'\n", l->id);
+	  l = l->next;
+	//}
+	p = p->next;
+      }
+   // }
+  }
+}
+
 void createAdjMatrix(){
 
 	FILE * fp;
@@ -276,6 +318,9 @@ void createAdjMatrix(){
 	struct SparseMatrix adj_mat;
 	adj_mat = initSparseMatrix();
 
+	struct HitsPrMatrix hitsPr_mat;
+	hitsPr_mat = initHITSPRMatrix();
+
 	while ((read2 = getline(&line_text, &len, fp2)) != -1){
 		if (line_text[0] == '+'){ //Trigger for reading next paper
 			readingCitationsId = 0;
@@ -294,6 +339,8 @@ void createAdjMatrix(){
 				}
 				myCitationsIndex = atoi(l->id);
 				addSparseValue(&adj_mat, myIndex, myCitationsIndex);
+				hitsPr_mat.hub_score[myIndex]++;
+				hitsPr_mat.auth_score[myCitationsIndex]++;
 
 				citation_count++;
 				/* printf("my index: %d my citation index: %d\n", myIndex, myCitationsIndex); */
@@ -306,33 +353,24 @@ void createAdjMatrix(){
 			}
 		}
 	}
-	struct paper_list *l = hashtable_get(&h, "plasm-ph/9607002");
-	printf("Value: %s\n", l->id);
+	struct paper_list *l = hashtable_get(&h, "alg-geom/9412017");
 	printf("size: %d\n", adj_mat.size);
-	/* hashtable_print_contents(&h); */
+	printf("Value: %s\n", l->id);
+	//hashtable_print_contents(&h);
+	printSparseValue(adj_mat, 38);
+	printSparseValue(adj_mat, 39);
+	printSparseValue(adj_mat, 40);
+	printf("HubScore: %f\n", hitsPr_mat.hub_score[38]);
+	printf("AuthorityScore: %f\n", hitsPr_mat.auth_score[38]);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Insert PageRank Iteration Loop here.
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// int i;
+	// for(i = 0; i < 1354753; i++){
+
+	// }
 	fclose(f);
 }
-
-void hashtable_print_contents(struct hashtable *h) {
-  uint32_t bucket_idx;
-  fprintf(stderr, "Hashtable at %p:\n", h);
-  for(bucket_idx = 0; bucket_idx < HASH_BUCKETS; bucket_idx++) {
-    if(h->buckets[bucket_idx]) {
-      fprintf(stderr, "  Bucket %d:\n", bucket_idx);
-      struct hashbucket *p = h->buckets[bucket_idx];
-      while(p) {
-	fprintf(stderr, "    Key '%s':\n", p->key);
-	struct paper_list *l = p->value;
-	while(l) {
-	  fprintf(stderr, "      Paper '%s'\n", l->id);
-	  l = l->next;
-	}
-	p = p->next;
-      }
-    }
-  }
-}
-
 
 int main(){
 	MPI_Init(NULL, NULL);
@@ -340,66 +378,66 @@ int main(){
 	MPI_Comm_size(world,  &nprocs);
 	MPI_Comm_rank(world, &me);
 
-	fprintf(stderr, "%d Reading papers...\n", me);
-	struct Paper *papers;
-	papers = readInMetadata();
-	/* if (me == 0){ */
-	/* 	createAdjMatrix(); */
-	/* } */
-	fprintf(stderr, "%d Hashing papers...\n", me);
-	struct hashtable h;
-	hashtable_init(&h);
+	// fprintf(stderr, "%d Reading papers...\n", me);
+	// struct Paper *papers;
+	// papers = readInMetadata();
+	// fprintf(stderr, "%d Hashing papers...\n", me);
+	// struct hashtable h;
+	// hashtable_init(&h);
 	
-	int i;
-	for(i = 0; i < blocksize; i++) {
-	  char *wptr = strdup(papers[i].abstract), *sep;
-	  char *orig_wptr = wptr;
-	  while((sep = strchr(wptr, ' '))) {
-	    *sep = '\0';
-	    char *normalized = normalize(wptr);
-	    if(strlen(normalized) > 3) {
-	      hashtable_append(&h, normalized, papers[i].id);
-	    } else {
-	      free(normalized);
-	    }
-	    wptr = sep + 1;
-	  }
-	  free(orig_wptr);
-	}
-	fprintf(stderr, "%d Serializing hash...\n", me);
-	int length = hashtable_serialized_length(&h);
-	fprintf(stderr, "%d Hashtable size: %d\n", me, length);
-	char *serialized = malloc(length);
-	serialize_hashtable(&h, serialized);
+	// int i;
+	// for(i = 0; i < blocksize; i++) {
+	//   char *wptr = strdup(papers[i].abstract), *sep;
+	//   char *orig_wptr = wptr;
+	//   while((sep = strchr(wptr, ' '))) {
+	//     *sep = '\0';
+	//     char *normalized = normalize(wptr);
+	//     if(strlen(normalized) > 3) {
+	//       hashtable_append(&h, normalized, papers[i].id);
+	//     } else {
+	//       free(normalized);
+	//     }
+	//     wptr = sep + 1;
+	//   }
+	//   free(orig_wptr);
+	// }
+	// fprintf(stderr, "%d Serializing hash...\n", me);
+	// int length = hashtable_serialized_length(&h);
+	// fprintf(stderr, "%d Hashtable size: %d\n", me, length);
+	// char *serialized = malloc(length);
+	// serialize_hashtable(&h, serialized);
 
-	fprintf(stderr, "%d Serialization complete.\n", me);
+	// fprintf(stderr, "%d Serialization complete.\n", me);
 
-	int *serialized_sizes;
-	if(me == 0) {
-	  serialized_sizes = calloc(nprocs, sizeof(int));
-	}
-	MPI_Gather(&length, 1, MPI_INT, serialized_sizes, 1, MPI_INT, 0, world);
-	if(me == 0) {
-	  int i;
-	  for(i = 0; i < nprocs; i++) {
-	    fprintf(stderr, "Size of %d's table: %d\n", i, serialized_sizes[i]);
-	  }
-	}
+	// int *serialized_sizes;
+	// if(me == 0) {
+	//   serialized_sizes = calloc(nprocs, sizeof(int));
+	// }
+	// MPI_Gather(&length, 1, MPI_INT, serialized_sizes, 1, MPI_INT, 0, world);
+	// if(me == 0) {
+	//   int i;
+	//   for(i = 0; i < nprocs; i++) {
+	//     fprintf(stderr, "Size of %d's table: %d\n", i, serialized_sizes[i]);
+	//   }
+	// }
 
-	if(me == 0) {
-	  int i;
-	  for(i = 1; i < nprocs; i++) {
-	    fprintf(stderr, "Receiving from %d\n", i);
-	    char *recv_serial = calloc(serialized_sizes[i], 1);
-	    MPI_Recv(recv_serial, serialized_sizes[i], MPI_BYTE, i, 0, world, MPI_STATUS_IGNORE);
-	    fprintf(stderr, "Merging from %d\n", i);
-	    deserialize_hashtable(recv_serial, &h);
-	    free(recv_serial);
-	  }
-	} else {
-	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
-	}
+	// if(me == 0) {
+	//   int i;
+	//   for(i = 1; i < nprocs; i++) {
+	//     fprintf(stderr, "Receiving from %d\n", i);
+	//     char *recv_serial = calloc(serialized_sizes[i], 1);
+	//     MPI_Recv(recv_serial, serialized_sizes[i], MPI_BYTE, i, 0, world, MPI_STATUS_IGNORE);
+	//     fprintf(stderr, "Merging from %d\n", i);
+	//     deserialize_hashtable(recv_serial, &h);
+	//     free(recv_serial);
+	//   }
+	// } else {
+	//   MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
+	// }
 
+	if (me == 0){
+		createAdjMatrix();
+	}
 	
 	MPI_Finalize();
 	return 0;

@@ -192,6 +192,29 @@ struct SparseMatrix initSparseMatrix(){
 
 void addSparseValue(struct SparseMatrix *mat, int row, int col){
 	mat->size++;
+	if (mat->size % 500000 == 0){
+		printf("Size: %d\n", mat->size);
+	} 
 	mat->row_index[mat->size] = row;
 	mat->col_index[mat->size] = col;
+}
+
+void printSparseValue(struct SparseMatrix mat, int index){
+	printf("Row: %d Col: %d\n", mat.row_index[index], mat.col_index[index]);
+}
+
+struct HitsPrMatrix initHITSPRMatrix(){
+	struct HitsPrMatrix mat;
+	mat.hub_score = malloc(1400000 * sizeof(double));
+	mat.auth_score = malloc(1400000 * sizeof(double));
+	mat.oldpage_rank = malloc(1400000 * sizeof(double));
+	mat.newpage_rank = malloc(1400000 * sizeof(double));
+	int i;
+	for(i = 0; i < 1400000; i++){
+		mat.hub_score[i] = 0;
+		mat.auth_score[i] = 0;
+		mat.oldpage_rank[i] = 1/1354753;
+		mat.newpage_rank[i] = 1/1354753;
+	}
+	return mat;
 }
