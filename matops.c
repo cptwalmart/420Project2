@@ -192,9 +192,6 @@ struct SparseMatrix initSparseMatrix(){
 
 void addSparseValue(struct SparseMatrix *mat, int row, int col){
 	mat->size++;
-	/* if (mat->size % 1000 == 0){ */
-		printf("Size: %d\n", mat->size);
-	/* } */
 	mat->row_index[mat->size] = row;
 	mat->col_index[mat->size] = col;
 }

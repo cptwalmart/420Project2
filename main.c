@@ -343,6 +343,9 @@ int main(){
 	fprintf(stderr, "%d Reading papers...\n", me);
 	struct Paper *papers;
 	papers = readInMetadata();
+	/* if (me == 0){ */
+	/* 	createAdjMatrix(); */
+	/* } */
 	fprintf(stderr, "%d Hashing papers...\n", me);
 	struct hashtable h;
 	hashtable_init(&h);
@@ -397,9 +400,6 @@ int main(){
 	  MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
 	}
 
-	if (me == 0){
-		createAdjMatrix();
-	}
 	
 	MPI_Finalize();
 	return 0;
