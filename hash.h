@@ -11,6 +11,7 @@ struct paper_list {
   struct paper_list *next;
   struct paper_list *last;
   char *id;
+  int index;
 };
 
 struct hashbucket {

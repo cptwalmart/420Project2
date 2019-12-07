@@ -21,6 +21,11 @@ struct Paper{
 	char *abstract;
 };
 
+struct Result{
+	char *id;
+	double pagerank
+};
+
 int me;
 int nprocs;
 
@@ -28,6 +33,10 @@ int blocksize = 0;
 
 char fullMetaFile[METAFILE_NUM_LINES];
 char fullCitationsFile[CITATIONFILE_NUM_LINES];
+
+struct hashtable id_map; //Store id -> index map
+struct SparseMatrix adj_mat;
+struct HitsPrMatrix hitsPr_mat;
 
 char *normalize(char *word) {
   char *ret = calloc(strlen(word), sizeof(char));
@@ -185,27 +194,6 @@ struct Paper *readInMetadata(){
 	return myPapers;
 }
 
-// ORIGINAL
-// void hashtable_print_contents(struct hashtable *h) {
-//   uint32_t bucket_idx;
-//   fprintf(stderr, "Hashtable at %p:\n", h);
-//   for(bucket_idx = 0; bucket_idx < HASH_BUCKETS; bucket_idx++) {
-//     if(h->buckets[bucket_idx]) {
-//       fprintf(stderr, "  Bucket %d:\n", bucket_idx);
-//       struct hashbucket *p = h->buckets[bucket_idx];
-//       while(p) {
-// 	fprintf(stderr, "    Key '%s':\n", p->key);
-// 	struct paper_list *l = p->value;
-// 	while(l) {
-// 	  fprintf(stderr, "      Paper '%s'\n", l->id);
-// 	  l = l->next;
-// 	}
-// 	p = p->next;
-//       }
-//     }
-//   }
-// }
-
 // TEST
 void hashtable_print_contents(struct hashtable *h) {
   uint32_t bucket_idx = 38;
@@ -261,8 +249,7 @@ void createAdjMatrix(){
 		exit(1);
 	}
 
-	struct hashtable h; //Store id -> index map
-	hashtable_init(&h);
+	hashtable_init(&id_map);
 	citation_count = 0;
 
 	while ((read = getline(&line_text, &len, fp)) != -1){
@@ -291,7 +278,7 @@ void createAdjMatrix(){
 				char str[100];
 				sprintf(str, "%d", paper_count);
 				strtok(line_text, "\n"); //remove end of line character
-				hashtable_append(&h, line_text, str); 
+				hashtable_append(&id_map, line_text, str); 
 
 			}
 		}
@@ -315,10 +302,8 @@ void createAdjMatrix(){
 	citation_count = 0;
 	readingCitationsId = 0;
 
-	struct SparseMatrix adj_mat;
 	adj_mat = initSparseMatrix();
 
-	struct HitsPrMatrix hitsPr_mat;
 	hitsPr_mat = initHITSPRMatrix();
 
 	while ((read2 = getline(&line_text, &len, fp2)) != -1){
@@ -333,7 +318,7 @@ void createAdjMatrix(){
 			else if (readingCitationsId){ //Read citation IDs
 				/* printf("node %d reading citations:  %s\n", me, line_text); */
 				strtok(line_text, "\n"); //remove end of line character
-				struct paper_list *l = hashtable_get(&h, line_text);
+				struct paper_list *l = hashtable_get(&id_map, line_text);
 				if (l ==  NULL){
 					continue;
 				}
@@ -347,20 +332,16 @@ void createAdjMatrix(){
 			}
 			else { //Read my ID
 				strtok(line_text, "\n"); //remove end of line character
-				struct paper_list *l = hashtable_get(&h, line_text);
+				struct paper_list *l = hashtable_get(&id_map, line_text);
 				myIndex = atoi(l->id);
 
 			}
 		}
 	}
-	printf("size: %d\n", adj_mat.size);
-	//hashtable_print_contents(&h);
-	printSparseValue(adj_mat, 38);
 	printSparseValue(adj_mat, 39);
 	printSparseValue(adj_mat, 40);
 	printf("HubScore: %f\n", hitsPr_mat.hub_score[38]);
 	printf("AuthorityScore: %f\n", hitsPr_mat.auth_score[38]);
-	printf("HERE");
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Insert PageRank Iteration Loop here.
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +351,7 @@ void createAdjMatrix(){
 	double tmpPR = 0;
 	int k;
 	//printf("Citation #%d HubScore: %.0f, AuthorityScore: %.0f, PageRank: %f\n", 38, hitsPr_mat.hub_score[38], hitsPr_mat.auth_score[38], hitsPr_mat.newpage_rank[38]);
-	for(k = 0; k < 10; k++){
+	for(k = 0; k < 5; k++){
 		if(k % 2 == 0){
 			for(i = 0; i < 1305086; i++){
 				int j;
@@ -436,6 +417,64 @@ void createAdjMatrix(){
 	fclose(f);
 }
 
+void sortResults(struct Result *results, int size){
+	int i, j;
+	for (i = 0; i < size-1; i++){
+		for (j = 0; j < size-i-1; j++){
+			if (results[j].pagerank > results[j+1].pagerank){
+				struct Result tmp = results[j];
+				results[j] = results[j+1];
+				results[j+1] = tmp;
+			}
+		}
+	}
+}
+
+void searchWord(struct hashtable h, char *word){
+	int curr_result = 0;
+
+	char *normalized = normalize(word);
+	int bucketSize = getBucketSize(&h, normalized);
+	struct Result *results = malloc (bucketSize * sizeof(struct Result));
+
+	struct paper_list *l = hashtable_get(&h, normalized); 
+
+
+	while(l){
+		struct paper_list *paper_index = hashtable_get(&id_map, l->id);
+		if (paper_index ==  NULL){
+			l = l->next;
+			results[curr_result].id = "nil";
+			results[curr_result].pagerank = 0;
+			curr_result++;
+			continue;
+		}
+		int myIndex = atoi(paper_index->id);
+		double pr = hitsPr_mat.oldpage_rank[myIndex];
+		results[curr_result].id = l->id;
+		results[curr_result].pagerank = pr;
+		curr_result++;
+
+		l = l->next;
+	}
+
+	sortResults(results, bucketSize);
+	int p, pagesToShow;
+	pagesToShow = 5;
+	if (bucketSize < 5){
+		pagesToShow = bucketSize;
+	}
+
+	printf("========== Results for %s ==========\n", normalized);
+	for (p = bucketSize- 1; p >  bucketSize - pagesToShow; p--){
+		printf("ID: %s\n", results[p].id);
+		printf("Pagerank: %f\n", results[p].pagerank);
+		printf("------------------------------\n");
+	}
+	free(results);
+
+}
+
 int main(){
 	MPI_Init(NULL, NULL);
 	MPI_Comm world = MPI_COMM_WORLD;
@@ -451,7 +490,7 @@ int main(){
 
 	int i;
 	//ONLY DOING HALF PAPERS. DONT FORGET TO REMOVE!!
-	for(i = 0; i < blocksize/10; i++) {
+	for(i = 0; i < blocksize/8; i++) {
 		char *wptr = strdup(papers[i].abstract), *sep;
 		char *orig_wptr = wptr;
 		while((sep = strchr(wptr, ' '))) {
@@ -499,46 +538,31 @@ int main(){
 		MPI_Send(serialized, length, MPI_BYTE, 0, 0, world);
 	}
 
-	/* if (me == 0){ */
-	/* 	createAdjMatrix(); */
-	/* } */
+	if (me == 0){
+		createAdjMatrix();
 
-	printf("Google: ");
-	fflush( stdout );
+		printf("Google: ");
+		fflush( stdout );
 
-	char phrase[100];
-	/* scanf("%s", phrase); */
-	fgets(phrase, 100, stdin);
+		char phrase[100];
+		char tmp[100];
+		fgets(phrase, 100, stdin);
+		strcpy(tmp, phrase);
 
-	printf("You %d entered: %s\n", strlen(phrase), phrase);
-	/* int i, spaceIndex; */
-	/* spaceIndex = -1; */
-	/* for (i = 0; i < strlen(phrase); i++){ */
-	/* 	if (phrase[i] == " "){ */
-	/* 		spaceIndex = i; */
-	/* 	} */
-	/* } */		
-	/* if (spaceIndex == -1){ //They entered ONE word */
+		char* token = strtok(phrase, " "); 
 
-	/* } */
-	/* else { //They entered 2 words */
-
-	/* } */
-// Returns first token 
-    char* token = strtok(phrase, " "); 
-  
-    // Keep printing tokens while one of the 
-    // delimiters present in str[]. 
-    while (token != NULL) { 
-		char *normalized = normalize(token);
-		struct paper_list *l = hashtable_get(&h, normalized); 
-		while(l){
-			printf("Value: %s\n", l->id);
-			l = l->next;
+		int numLoops = 0;
+	  
+		while (token != NULL) {  
+			searchWord(h, token);
+			token = strtok(NULL, " "); 
+			numLoops++;
+		} 
+		if (numLoops > 1){ //The user entered multiple words. Do seach on full string
+			searchWord(h, tmp);
 		}
-
-        token = strtok(NULL, " "); 
-    } 
+		printf("INPUT SIZE: %d and word: %s\n", strlen(tmp), tmp);
+	}
 	
 	MPI_Finalize();
 	return 0;

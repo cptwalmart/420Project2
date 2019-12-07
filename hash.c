@@ -74,6 +74,19 @@ struct paper_list *hashtable_get(struct hashtable *h, const char *key) {
 
 }
 
+int getBucketSize(struct hashtable *h, const char *key){
+	struct paper_list *p = hashtable_get(h, key);
+	if (p == NULL){
+		return 0;
+	}
+	int count = 0;
+	while (p){
+		p = p->next;
+		count++;
+	}
+	return count;
+}
+
 void hashtable_free(struct hashtable *h) {
   int i;
   for(i = 0; i < HASH_BUCKETS; i++) {
