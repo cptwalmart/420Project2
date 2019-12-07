@@ -560,7 +560,7 @@ int main(){
 
 	int i;
 	//ONLY DOING HALF PAPERS. DONT FORGET TO REMOVE!!
-	for(i = 0; i < blocksize/8; i++) {
+	for(i = 0; i < blocksize; i++) {
 		char *wptr = strdup(papers[i].abstract), *sep;
 		char *orig_wptr = wptr;
 		while((sep = strchr(wptr, ' '))) {
