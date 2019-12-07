@@ -1,3 +1,7 @@
+//Project 2
+//Nick, Dakota, Kevin
+//Page rank
+
 #include <stdio.h>
 #include <mpi.h>
 #include <math.h>
@@ -23,7 +27,13 @@ struct Paper{
 
 struct Result{
 	char *id;
-	double pagerank
+	double pagerank;
+	char *word;
+};
+
+struct AllResults{
+	struct Result *results;
+	int size;
 };
 
 int me;
@@ -338,10 +348,6 @@ void createAdjMatrix(){
 			}
 		}
 	}
-	printSparseValue(adj_mat, 39);
-	printSparseValue(adj_mat, 40);
-	printf("HubScore: %f\n", hitsPr_mat.hub_score[38]);
-	printf("AuthorityScore: %f\n", hitsPr_mat.auth_score[38]);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Insert PageRank Iteration Loop here.
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -395,25 +401,6 @@ void createAdjMatrix(){
 		tmpPR = 0;
 	}
 
-	// struct paper_list *l = hashtable_get(&h, "alg-geom/9412017");
-	
-	// printf("Value: %s\n", l->id);
-	//hashtable_print_contents(&h);
-	//struct SparseMatrix *ptr = &adj_mat;
-	//ptr = ptr + atoi(l->id);
-
-	int aINDEXa;
-	for(aINDEXa = 0; aINDEXa < 40; aINDEXa++){
-		printf("Citation #%d HubScore: %.0f, AuthorityScore: %.0f, PageRank: %E\n", aINDEXa, hitsPr_mat.hub_score[aINDEXa], hitsPr_mat.auth_score[aINDEXa], hitsPr_mat.newpage_rank[aINDEXa]);
-	}
-	// printSparseValue(adj_mat, aINDEXa);
-	// aINDEXa++;
-	// printSparseValue(adj_mat, aINDEXa);
-	// aINDEXa++;
-	// printSparseValue(adj_mat, aINDEXa);
-	// printf("HubScore: %f\n", hitsPr_mat.hub_score[38]);
-	// printf("AuthorityScore: %f\n", hitsPr_mat.auth_score[38]);
-
 	fclose(f);
 }
 
@@ -430,48 +417,131 @@ void sortResults(struct Result *results, int size){
 	}
 }
 
-void searchWord(struct hashtable h, char *word){
-	int curr_result = 0;
-
-	char *normalized = normalize(word);
-	int bucketSize = getBucketSize(&h, normalized);
-	struct Result *results = malloc (bucketSize * sizeof(struct Result));
-
-	struct paper_list *l = hashtable_get(&h, normalized); 
-
-
-	while(l){
-		struct paper_list *paper_index = hashtable_get(&id_map, l->id);
-		if (paper_index ==  NULL){
-			l = l->next;
-			results[curr_result].id = "nil";
-			results[curr_result].pagerank = 0;
-			curr_result++;
-			continue;
+int getNumWordsInPhrase(char *phrase){
+	int i, spaces;
+	spaces = 0;
+	for (i = 0; i < strlen(phrase); i++){
+		if (phrase[i] == ' '){
+			spaces++;
 		}
-		int myIndex = atoi(paper_index->id);
-		double pr = hitsPr_mat.oldpage_rank[myIndex];
-		results[curr_result].id = l->id;
-		results[curr_result].pagerank = pr;
-		curr_result++;
+	}
+	return spaces + 1;
+}
 
-		l = l->next;
+void printResultForWord(char *word, struct Result *results, int size, int pagesToShow){
+		int p;
+		printf("========== Results for %s ==========\n", word);
+		for (p = size- 1; p >  size - pagesToShow; p--){
+			printf("ID: %s\n", results[p].id);
+			printf("Pagerank: %f\n", results[p].pagerank);
+			printf("------------------------------\n");
+		}
+}
+
+void google(struct hashtable h, char *phrase){
+	int numWords = getNumWordsInPhrase(phrase);
+	if (numWords > 2 || strlen(phrase) == 0){ return; }
+	/* if (numWords > 1){ numWords++; } */
+	printf("Num words: %d\n", numWords);
+
+	char orig_phrase[100];
+	strcpy(orig_phrase, phrase);
+	strtok(orig_phrase, "\n"); //remove end of line character
+	char* token = strtok(phrase, " "); 
+	char firstWordCopy[strlen(token)];
+	strcpy(firstWordCopy, token);
+
+	int numResults, curr_word = 0;
+	/* char *word1, *word2; */
+	/* strcpy(word1, token); */
+
+	struct AllResults *allResults = malloc ((numWords) * sizeof (struct AllResults));
+	/* allResults->size = 0; */
+
+	while (token != NULL) {  
+		printf("Current tokeN : %s\n", token);
+		int curr_result = 0;
+
+		char *normalized = normalize(token);
+		int bucketSize = getBucketSize(&h, normalized);
+		struct Result *results = malloc (bucketSize * sizeof(struct Result));
+
+		struct paper_list *l = hashtable_get(&h, normalized); 
+
+		while(l != NULL){
+		/* printf("Next: %s\n", l->next->id); */
+			struct paper_list *paper_index = hashtable_get(&id_map, l->id);
+			if (paper_index ==  NULL){
+				l = l->next;
+				results[curr_result].id = "nil";
+				results[curr_result].pagerank = 0;
+				curr_result++;
+				continue;
+			}
+			int myIndex = atoi(paper_index->id);
+			double pr = hitsPr_mat.oldpage_rank[myIndex];
+			results[curr_result].id = l->id;
+			results[curr_result].pagerank = pr;
+			results[curr_result].word = normalized;
+			curr_result++;
+
+			l = l->next;
+		}
+
+		sortResults(results, bucketSize);
+		/* allResults[allResults->size].results = results; //Array of results */
+
+
+		int p, pagesToShow;
+		pagesToShow = 5;
+		if (bucketSize < 5){
+			pagesToShow = bucketSize;
+		}
+
+		printResultForWord(normalized, results, bucketSize, pagesToShow);
+
+
+
+		if (curr_word == 1){
+			char *word = normalize(firstWordCopy);
+			printf("Word test: %s\n", word);
+			struct paper_list *l = hashtable_get(&h, word); 
+			struct Result *results_bothwords = malloc (100000 * sizeof(struct Result));
+			int num_results_both = 0;
+			while (l){
+				int i;
+				for (i = 0; i < bucketSize; i++){
+					if (strcmp(l->id, results[i].id) == 0){
+						results_bothwords[num_results_both].id = l->id;
+						results_bothwords[num_results_both].pagerank = results[i].pagerank;
+						num_results_both++;
+					}
+				}
+				l = l->next;
+			}
+			pagesToShow = 5;
+			if (num_results_both < 5){
+				pagesToShow = num_results_both;
+			}
+			sortResults(results_bothwords, num_results_both);
+			printResultForWord(orig_phrase, results_bothwords, num_results_both, pagesToShow);
+		}
+		/* allResults->size++; */
+		curr_word++;
+
+
+		free(results);
+		token = strtok(NULL, " "); 
+		/* if (token != NULL){ */
+		/* 	strcpy(word2, token); */
+		/* } */
 	}
 
-	sortResults(results, bucketSize);
-	int p, pagesToShow;
-	pagesToShow = 5;
-	if (bucketSize < 5){
-		pagesToShow = bucketSize;
-	}
+	/* printf("Word 1: %s\n", word1); */
+	/* printf("Word 2: %s\n", word2); */
+	//Check if any results contain BOTH words (or multiple)
+	
 
-	printf("========== Results for %s ==========\n", normalized);
-	for (p = bucketSize- 1; p >  bucketSize - pagesToShow; p--){
-		printf("ID: %s\n", results[p].id);
-		printf("Pagerank: %f\n", results[p].pagerank);
-		printf("------------------------------\n");
-	}
-	free(results);
 
 }
 
@@ -541,27 +611,14 @@ int main(){
 	if (me == 0){
 		createAdjMatrix();
 
-		printf("Google: ");
-		fflush( stdout );
+		/* printf("Google: "); */
+		/* fflush( stdout ); */
 
-		char phrase[100];
-		char tmp[100];
-		fgets(phrase, 100, stdin);
-		strcpy(tmp, phrase);
-
-		char* token = strtok(phrase, " "); 
-
-		int numLoops = 0;
-	  
-		while (token != NULL) {  
-			searchWord(h, token);
-			token = strtok(NULL, " "); 
-			numLoops++;
-		} 
-		if (numLoops > 1){ //The user entered multiple words. Do seach on full string
-			searchWord(h, tmp);
-		}
-		printf("INPUT SIZE: %d and word: %s\n", strlen(tmp), tmp);
+		/* char phrase[100]; */
+		/* char tmp[100]; */
+		/* fgets(phrase, 100, stdin); */
+		/* google(h, phrase); */
+		google(h, "example");
 	}
 	
 	MPI_Finalize();

@@ -1,0 +1,180 @@
+
+*****NOTE: Outputs are from a section of papers. Results may differ from results for using full database *****
+
+
+0 Reading papers...
+1 Reading papers...
+2 Reading papers...
+3 Reading papers...
+0 Hashing papers...
+1 Hashing papers...
+2 Hashing papers...
+3 Hashing papers...
+0 Serializing hash...
+0 Hashtable size: 40343273
+1 Serializing hash...
+2 Serializing hash...
+1 Hashtable size: 44632052
+2 Hashtable size: 52007816
+3 Serializing hash...
+0 Serialization complete.
+1 Serialization complete.
+3 Hashtable size: 80469591
+2 Serialization complete.
+3 Serialization complete.
+Size of 0's table: 40343273
+Size of 1's table: 44632052
+Size of 2's table: 52007816
+Size of 3's table: 80469591
+Receiving from 1
+Merging from 1
+Receiving from 2
+Merging from 2
+Receiving from 3
+Merging from 3
+Num citations: 0
+Size: 500000
+Google: test tests
+Num words: 2
+Current tokeN : test
+========== Results for test ==========
+ID: 0706.4191
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.4139
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.3554
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.3518
+Pagerank: 23398727227767.519531
+------------------------------
+Current tokeN : tests
+
+========== Results for tests ==========
+ID: 0706.4169
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.3898
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.2654
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.2576
+Pagerank: 23398727227767.519531
+------------------------------
+Word test: test
+========== Results for test tests ==========
+ID: astro-ph/0209396
+Pagerank: 23011058369765.371094
+------------------------------
+ID: astro-ph/0401622
+Pagerank: 22876445308004.386719
+------------------------------
+ID: astro-ph/0603406
+Pagerank: 22785404866132.867188
+------------------------------
+ID: astro-ph/0603199
+Pagerank: 22697981368599.804688
+------------------------------
+
+
+
+3 Reading papers...
+0 Reading papers...
+1 Reading papers...
+2 Reading papers...
+0 Hashing papers...
+2 Hashing papers...
+1 Hashing papers...
+3 Hashing papers...
+0 Serializing hash...
+1 Serializing hash...
+0 Hashtable size: 40343273
+2 Serializing hash...
+1 Hashtable size: 44632052
+3 Serializing hash...
+2 Hashtable size: 52007816
+0 Serialization complete.
+3 Hashtable size: 80469591
+1 Serialization complete.
+2 Serialization complete.
+3 Serialization complete.
+Size of 0's table: 40343273
+Size of 1's table: 44632052
+Size of 2's table: 52007816
+Size of 3's table: 80469591
+Receiving from 1
+Merging from 1
+Receiving from 2
+Merging from 2
+Receiving from 3
+Merging from 3
+Num citations: 0
+Size: 500000
+Google: qykjhgfahsfg saksadfsdafsadf  
+Num words: 2
+Current tokeN : qykjhgfahsfg
+========== Results for qykjhgfahsfg ==========
+Current tokeN : saksadfsdafsadf
+
+========== Results for saksadfsdafsadf ==========
+Word test: qykjhgfahsfg
+========== Results for qykjhgfahsfg saksadfsdafsadf ==========
+
+
+
+
+2 Reading papers...
+3 Reading papers...
+0 Reading papers...
+1 Reading papers...
+0 Hashing papers...
+2 Hashing papers...
+3 Hashing papers...
+1 Hashing papers...
+0 Serializing hash...
+0 Hashtable size: 40343273
+2 Serializing hash...
+1 Serializing hash...
+3 Serializing hash...
+1 Hashtable size: 44632052
+2 Hashtable size: 52007816
+0 Serialization complete.
+3 Hashtable size: 80469591
+2 Serialization complete.
+1 Serialization complete.
+3 Serialization complete.
+Size of 0's table: 40343273
+Size of 1's table: 44632052
+Size of 2's table: 52007816
+Size of 3's table: 80469591
+Receiving from 1
+Merging from 1
+Receiving from 2
+Merging from 2
+Receiving from 3
+Merging from 3
+Num citations: 0
+Size: 500000
+Google: this
+Num words: 1
+Current tokeN : this
+
+========== Results for this ==========
+ID: 0706.4474
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.4465
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.4460
+Pagerank: 23398727227767.519531
+------------------------------
+ID: 0706.4437
+Pagerank: 23398727227767.519531
+------------------------------
+
+
