@@ -559,7 +559,6 @@ int main(){
 	hashtable_init(&h);
 
 	int i;
-	//ONLY DOING HALF PAPERS. DONT FORGET TO REMOVE!!
 	for(i = 0; i < blocksize; i++) {
 		char *wptr = strdup(papers[i].abstract), *sep;
 		char *orig_wptr = wptr;
